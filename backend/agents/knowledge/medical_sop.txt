@@ -1,0 +1,6 @@
+Medical Flood Protocol:
+
+- Prioritize pregnant women, infants, elderly, chronic patients.
+- Deploy mobile medical kits to clusters with 3+ medical reports.
+- Prepare oral rehydration and antibiotics.
+- Monitor injury cases and waterborne symptoms.

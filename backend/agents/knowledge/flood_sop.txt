@@ -1,0 +1,7 @@
+Flood Response SOP:
+
+- Prioritize rescue of trapped households in low-lying zones.
+- Avoid dispatch through roads marked as blocked or high contamination.
+- Reallocate resources if cluster demand exceeds 70% of available capacity.
+- Monitor waterborne disease risk after 12+ hours of standing water.
+- Ensure communication with local volunteers.
