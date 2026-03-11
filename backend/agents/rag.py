@@ -35,3 +35,21 @@ def retrieve_relevant_knowledge(state):
         retrieved["shelter_sop"] = knowledge.get("shelter_sop.txt")
 
     return retrieved
+
+def retrieve_decision_knowledge(context: dict):
+
+    severity = context.get("severity", 1)
+    reason = context.get("reason", "")
+
+    knowledge = []
+
+    if severity >= 4:
+        knowledge.append("High severity incidents require supervisor escalation.")
+
+    if "medical" in reason.lower():
+        knowledge.append("Medical emergencies require medical-certified volunteers.")
+
+    if "blocked" in reason.lower():
+        knowledge.append("Blocked routes require alternative path planning.")
+
+    return knowledge
