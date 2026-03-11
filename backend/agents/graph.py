@@ -8,7 +8,7 @@ from backend.agents.cluster_agent import cluster_agent
 from backend.agents.resource_agent import resource_agent
 from backend.agents.routing_agent import routing_agent
 from backend.agents.medical_agent import medical_agent
-from backend.agents.command_agent import command_agent
+from backend.agents.strategic_planner_agent import strategic_planner_agent
 
 
 def build_graph():
@@ -20,7 +20,7 @@ def build_graph():
     builder.add_node("resource", resource_agent)
     builder.add_node("routing", routing_agent)
     builder.add_node("medical", medical_agent)
-    builder.add_node("command", command_agent)
+    builder.add_node("strategic_planner", strategic_planner_agent)
 
     builder.set_entry_point("triage")
 
@@ -28,9 +28,9 @@ def build_graph():
     builder.add_edge("cluster", "resource")
     builder.add_edge("resource", "routing")
     builder.add_edge("routing", "medical")
-    builder.add_edge("medical", "command")
+    builder.add_edge("medical", "strategic_planner")
 
     # 🔥 THIS WAS MISSING
-    builder.add_edge("command", END)
+    builder.add_edge("strategic_planner", END)
 
     return builder.compile()
