@@ -10,6 +10,7 @@ class EventTypes:
     # Detection layer
     FLOOD_CONFIRMED = "FLOOD_CONFIRMED"
     FLOOD_UPDATED = "FLOOD_UPDATED"
+    FLOOD_DETECTED = "FLOOD_DETECTED"
 
     # Intelligence layer
     CLUSTERS_UPDATED = "CLUSTERS_UPDATED"
