@@ -7,10 +7,10 @@ from backend.missions.mission_manager import MissionManager
 
 class CommandAgent(BaseAgent):
 
-    def __init__(self, event_bus, incident_manager, learning_engine):
+    def __init__(self, event_bus, incident_manager, global_learning_engine):
         super().__init__(event_bus, incident_manager)
         self.mission_manager = MissionManager(incident_manager)
-        self.learning_engine = learning_engine
+        self.global_learning_engine = global_learning_engine
 
     # -------------------------------------------------
     # Register to Event Bus
@@ -26,23 +26,25 @@ class CommandAgent(BaseAgent):
     # -------------------------------------------------
     def handle_mission_request(self, payload: dict):
 
-        # 1️⃣ Create mission
         mission = self.mission_manager.create_mission(payload)
 
-        # 2️⃣ Select best volunteer
         best_volunteer = self._select_best_volunteer(mission)
 
         if not best_volunteer:
-            # No available volunteer
             return
 
-        # 3️⃣ Assign volunteer
         self.mission_manager.assign_volunteer(
             mission_id=mission.mission_id,
             volunteer_id=best_volunteer.volunteer_id
         )
 
-        # 4️⃣ Publish assignment event
+        # Record assignment globally
+        self.global_learning_engine.record_status(
+            best_volunteer.volunteer_id,
+            mission.mission_id,
+            "ASSIGNED"
+        )
+
         self.event_bus.publish(
             EventTypes.MISSION_ASSIGNED,
             {
@@ -52,13 +54,12 @@ class CommandAgent(BaseAgent):
         )
 
     # -------------------------------------------------
-    # Volunteer Ranking Logic (Hybrid Scoring)
+    # Volunteer Ranking Logic
     # -------------------------------------------------
     def _select_best_volunteer(self, mission):
 
         state = self.incident_manager.get_state()
 
-        # Filter only available volunteers
         available_volunteers = [
             v for v in state.volunteers.values()
             if v.available
@@ -73,9 +74,7 @@ class CommandAgent(BaseAgent):
 
             score = 0
 
-            # --------------------------
-            # 1️⃣ Distance Score
-            # --------------------------
+            # 1️⃣ Distance
             mission_location = self._extract_mission_location(mission)
 
             if mission_location:
@@ -83,47 +82,35 @@ class CommandAgent(BaseAgent):
                     mission_location,
                     volunteer.location
                 )
-                score -= distance  # closer = higher score
+                score -= distance
 
-            # --------------------------
-            # 2️⃣ Skill Match
-            # --------------------------
+            # 2️⃣ Skill match
             required_skill = self._infer_required_skill(mission)
 
             if required_skill in volunteer.skills:
                 score += 10
 
-            # --------------------------
-            # 3️⃣ Equipment Match
-            # --------------------------
+            # 3️⃣ Equipment match
             if (
                 mission.type.value == "IMMEDIATE"
                 and "boat" in volunteer.equipment
             ):
                 score += 5
 
-            # --------------------------
-            # 4️⃣ Learning Adjustment
-            # --------------------------
-            score = self.learning_engine.adjust_volunteer_score(
-                volunteer.volunteer_id,
-                score
+            # 4️⃣ Persistent Global Learning Adjustment
+            success_rate = self.global_learning_engine.get_weighted_success_score(
+                volunteer.volunteer_id
             )
+
+            score += success_rate * 10  # Learning weight
 
             scored.append((score, volunteer))
 
-        # Select highest score
         scored.sort(key=lambda x: x[0], reverse=True)
 
         best_volunteer = scored[0][1]
 
-        # Mark volunteer unavailable
         best_volunteer.available = False
-
-        # Record assignment in learning memory
-        self.learning_engine.performance_tracker.record_assignment(
-            best_volunteer.volunteer_id
-        )
 
         return best_volunteer
 
@@ -155,5 +142,4 @@ class CommandAgent(BaseAgent):
         lat1, lon1 = loc1
         lat2, lon2 = loc2
 
-        # Simple Euclidean for simulation
         return ((lat1 - lat2) ** 2 + (lon1 - lon2) ** 2) ** 0.5

@@ -7,6 +7,10 @@ from backend.core.state_models import Volunteer
 
 from backend.agents.triage_agent import TriageAgent
 from backend.agents.command_agent import CommandAgent
+from backend.agents.feedback_agent import FeedbackAgent
+
+from backend.memory.performance_tracker import PerformanceTracker
+from backend.memory.learning_engine import LearningEngine
 
 
 # --------------------------------------------------
@@ -16,12 +20,19 @@ from backend.agents.command_agent import CommandAgent
 event_bus = EventBus()
 incident_manager = IncidentManager(event_bus)
 
-# Initialize empty incident state
 state = incident_manager.get_state()
 
 
 # --------------------------------------------------
-# 2️⃣ Seed Volunteers (STRICT MODEL OBJECTS)
+# 2️⃣ Setup Learning Memory (Shared)
+# --------------------------------------------------
+
+performance_tracker = PerformanceTracker()
+learning_engine = LearningEngine(performance_tracker)
+
+
+# --------------------------------------------------
+# 3️⃣ Seed Volunteers (STRICT MODEL OBJECTS)
 # --------------------------------------------------
 
 state.volunteers = {
@@ -43,18 +54,30 @@ state.volunteers = {
 
 
 # --------------------------------------------------
-# 3️⃣ Initialize Agents
+# 4️⃣ Initialize Agents (Proper Injection)
 # --------------------------------------------------
 
 triage_agent = TriageAgent(event_bus, incident_manager)
-command_agent = CommandAgent(event_bus, incident_manager)
+
+command_agent = CommandAgent(
+    event_bus,
+    incident_manager,
+    learning_engine
+)
+
+feedback_agent = FeedbackAgent(
+    event_bus,
+    incident_manager,
+    performance_tracker
+)
 
 triage_agent.register()
 command_agent.register()
+feedback_agent.register()
 
 
 # --------------------------------------------------
-# 4️⃣ Listen to Mission Assigned Event (Debug)
+# 5️⃣ Debug Listener
 # --------------------------------------------------
 
 def on_mission_assigned(payload):
@@ -65,7 +88,7 @@ event_bus.subscribe(EventTypes.MISSION_ASSIGNED, on_mission_assigned)
 
 
 # --------------------------------------------------
-# 5️⃣ Trigger System with Critical Report
+# 6️⃣ Trigger System with Critical Report
 # --------------------------------------------------
 
 event_bus.publish(
@@ -81,7 +104,26 @@ event_bus.publish(
 
 
 # --------------------------------------------------
-# 6️⃣ Print Final System State
+# 7️⃣ Simulate Volunteer Completion (Learning Test)
+# --------------------------------------------------
+
+# Get first mission
+mission_ids = list(state.missions.keys())
+
+if mission_ids:
+    mission_id = mission_ids[0]
+
+    event_bus.publish(
+        EventTypes.VOLUNTEER_REPORT_RECEIVED,
+        {
+            "mission_id": mission_id,
+            "status": "COMPLETED"
+        }
+    )
+
+
+# --------------------------------------------------
+# 8️⃣ Print Final System State
 # --------------------------------------------------
 
 print("\n----- FINAL MISSIONS -----")
@@ -100,3 +142,8 @@ for vid, volunteer in state.volunteers.items():
         f"{vid} | Available: {volunteer.available} | "
         f"Location: {volunteer.location}"
     )
+
+print("\n----- LEARNING MEMORY -----")
+for vid in state.volunteers:
+    success_rate = performance_tracker.get_success_rate(vid)
+    print(f"{vid} | Success Rate: {success_rate:.2f}")
