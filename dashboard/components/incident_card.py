@@ -1,0 +1,1 @@
+# dashboard/components/incident_card.py

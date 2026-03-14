@@ -2,7 +2,6 @@
 
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime
 
 from backend.missions.mission_schema import Mission
 
@@ -13,6 +12,8 @@ class Volunteer(BaseModel):
     skills: List[str]
     equipment: List[str]
     available: bool = True
+    division: str = "Sylhet"
+    district: str = "Sylhet"
 
 
 class Resource(BaseModel):
@@ -23,7 +24,6 @@ class Resource(BaseModel):
 
 
 class IncidentState(BaseModel):
-
     incident_id: str
     status: str = "ACTIVE"
 

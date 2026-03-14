@@ -19,9 +19,6 @@ class FloodResponseCoordinator(BaseAgent):
             self.handle_flood_updated
         )
 
-    # -------------------------------------------------
-    # Initial flood detection
-    # -------------------------------------------------
     def handle_flood_detected(self, payload: dict):
         state = self.incident_manager.get_state()
 
@@ -34,10 +31,11 @@ class FloodResponseCoordinator(BaseAgent):
             "event": "FLOOD_RESPONSE_ACTIVATED",
             "severity": state.severity,
             "confidence": state.confidence,
+            "division": self._extract_division(payload.get("polygon_geojson")),
+            "district": self._extract_district(payload.get("polygon_geojson")),
             "timestamp": payload.get("timestamp"),
         })
 
-        # If severity is high enough, request an initial area mission
         severity = payload.get("severity", 1)
         risk_factors = payload.get("risk_factors", [])
 
@@ -51,14 +49,13 @@ class FloodResponseCoordinator(BaseAgent):
                     "report": {
                         "lat": self._extract_centroid_lat(payload.get("polygon_geojson")),
                         "lon": self._extract_centroid_lon(payload.get("polygon_geojson")),
-                        "source": "ENVIRONMENTAL_DETECTION"
+                        "source": "ENVIRONMENTAL_DETECTION",
+                        "division": self._extract_division(payload.get("polygon_geojson")),
+                        "district": self._extract_district(payload.get("polygon_geojson")),
                     }
                 }
             )
 
-    # -------------------------------------------------
-    # Continuous flood intelligence updates
-    # -------------------------------------------------
     def handle_flood_updated(self, payload: dict):
         state = self.incident_manager.get_state()
 
@@ -71,12 +68,11 @@ class FloodResponseCoordinator(BaseAgent):
             "severity": state.severity,
             "confidence": state.confidence,
             "risk_factors": payload.get("risk_factors", []),
+            "division": self._extract_division(payload.get("polygon_geojson")),
+            "district": self._extract_district(payload.get("polygon_geojson")),
             "timestamp": payload.get("timestamp"),
         })
 
-    # -------------------------------------------------
-    # Helpers
-    # -------------------------------------------------
     def _extract_centroid_lat(self, polygon_geojson):
         try:
             coords = polygon_geojson["features"][0]["geometry"]["coordinates"][0]
@@ -91,4 +87,16 @@ class FloodResponseCoordinator(BaseAgent):
             lons = [pt[0] for pt in coords]
             return sum(lons) / len(lons)
         except Exception:
-            return 0.0 
+            return 0.0
+
+    def _extract_division(self, polygon_geojson):
+        try:
+            return polygon_geojson["features"][0]["properties"].get("division", "Sylhet")
+        except Exception:
+            return "Sylhet"
+
+    def _extract_district(self, polygon_geojson):
+        try:
+            return polygon_geojson["features"][0]["properties"].get("district", "Sylhet")
+        except Exception:
+            return "Sylhet"
