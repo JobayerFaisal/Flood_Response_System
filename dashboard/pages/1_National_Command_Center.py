@@ -32,6 +32,13 @@ selected_district = st.selectbox(
     ["All", "Sylhet", "Moulvibazar", "Habiganj", "Sunamganj"],
     index=0
 ) or "All"
+if state.status == "FLOOD_RESPONSE_ACTIVE":
+    st.success("Live demo status: Flood response is active in Sylhet Division.")
+elif state.status == "ACTIVE":
+    st.info("System is initialized and waiting for incident escalation.")
+else:
+    st.warning(f"System status: {state.status}")
+
 
 
 def mission_matches_district(mission, district: str) -> bool:

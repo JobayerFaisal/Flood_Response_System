@@ -24,6 +24,13 @@ from backend.memory.global_learning_engine import GlobalLearningEngine
 
 class BackendBridge:
     def __init__(self):
+        self.latest_environmental_payload = None
+        self._build_runtime()
+
+    # -------------------------------------------------
+    # Runtime bootstrap
+    # -------------------------------------------------
+    def _build_runtime(self):
         self.event_bus = EventBus()
         self.incident_manager = IncidentManager(self.event_bus)
 
@@ -39,6 +46,9 @@ class BackendBridge:
             EventTypes.FLOOD_INTELLIGENCE_UPDATED,
             self._capture_environmental_update
         )
+
+    def reset_system(self):
+        self._build_runtime()
 
     def _seed_volunteers(self):
         state = self.incident_manager.get_state()
@@ -110,6 +120,9 @@ class BackendBridge:
     def _capture_environmental_update(self, payload: dict):
         self.latest_environmental_payload = payload
 
+    # -------------------------------------------------
+    # Public helpers
+    # -------------------------------------------------
     def get_incident_state(self):
         return self.incident_manager.get_state()
 
@@ -119,6 +132,9 @@ class BackendBridge:
     def get_event_log(self):
         return self.event_bus.get_event_log()
 
+    # -------------------------------------------------
+    # Demo flows
+    # -------------------------------------------------
     def run_demo_environmental_detection(self):
         now = datetime.utcnow().isoformat()
 
@@ -220,3 +236,12 @@ class BackendBridge:
             }
         )
         return True
+
+    def run_sylhet_judge_demo(self):
+        """
+        One-click judge-ready demo:
+        reset -> detect flood -> create mission -> assign volunteer -> complete one mission
+        """
+        self.reset_system()
+        self.run_demo_environmental_detection()
+        self.complete_first_mission()
