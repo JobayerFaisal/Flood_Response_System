@@ -6,15 +6,14 @@ from backend.core.event_types import EventTypes
 
 class FeedbackAgent(BaseAgent):
 
-    def __init__(self, event_bus, incident_manager, performance_tracker):
+    def __init__(self, event_bus, incident_manager, global_learning_engine):
         super().__init__(event_bus, incident_manager)
-        self.performance_tracker = performance_tracker
+        self.global_learning_engine = global_learning_engine
 
     # -------------------------------------------------
     # Register to Event Bus
     # -------------------------------------------------
     def register(self):
-
         self.event_bus.subscribe(
             EventTypes.VOLUNTEER_REPORT_RECEIVED,
             self.handle_volunteer_feedback
@@ -41,15 +40,14 @@ class FeedbackAgent(BaseAgent):
         volunteer_id = mission.assigned_volunteer
 
         # -------------------------------------------------
-        # 1️⃣ Record Learning Metrics
+        # 1️⃣ Record lifecycle into global learning memory
         # -------------------------------------------------
-        if volunteer_id:
-
-            if new_status == "COMPLETED":
-                self.performance_tracker.record_completion(volunteer_id)
-
-            elif new_status == "FAILED":
-                self.performance_tracker.record_failure(volunteer_id)
+        if volunteer_id and mission_id and new_status:
+            self.global_learning_engine.record_status(
+                volunteer_id=volunteer_id,
+                mission_id=mission_id,
+                status=new_status
+            )
 
         # -------------------------------------------------
         # 2️⃣ Escalate Severity (Controlled)
@@ -60,7 +58,6 @@ class FeedbackAgent(BaseAgent):
             state.severity = min(previous_severity + 1, 5)
 
             if state.severity != previous_severity:
-
                 self.event_bus.publish(
                     EventTypes.FLOOD_INTELLIGENCE_UPDATED,
                     {
@@ -73,7 +70,6 @@ class FeedbackAgent(BaseAgent):
         # 3️⃣ Mission Failure → Trigger AI Decision Layer
         # -------------------------------------------------
         if new_status == "FAILED":
-
             self.event_bus.publish(
                 EventTypes.MISSION_FAILED,
                 {
@@ -88,7 +84,6 @@ class FeedbackAgent(BaseAgent):
         # 4️⃣ Mission Completed → Free Volunteer
         # -------------------------------------------------
         if new_status == "COMPLETED" and volunteer_id:
-
             if volunteer_id in state.volunteers:
                 state.volunteers[volunteer_id].available = True
 

@@ -39,3 +39,11 @@ sqlalchemy==2.0.30
 psycopg2-binary==2.9.9
 
 scikit-learn==1.5.1
+
+asyncpg==0.29.0
+earthengine-api==0.1.400
+matplotlib==3.9.0
+redis==5.0.1
+scipy==1.13.0
+tensorflow==2.16.1
+tweepy==4.14.0
